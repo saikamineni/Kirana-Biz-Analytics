@@ -63,35 +63,24 @@ new_data = FOREACH data GENERATE
 Contact_Type,
 LOB;
 
-SPLIT new_data INTO 
-wireless_LOB IF LOB == 'WIRELESS', 
-business_LOB IF LOB == 'BUSINESS';
+spl = FOREACH new_data GENERATE
+REPLACE(Contact_Type, '^.*Agency.*$', ' Agency') AS Contact_Type:chararray, LOB;
 
-spl_wire = FOREACH wireless_LOB GENERATE
-REPLACE(Contact_Type, '^.*Agency.*$', ' Agency') AS Contact_Type:chararray;
+spl1 = FOREACH spl GENERATE
+REPLACE(Contact_Type, '^.*Executive.*$', ' Executive') AS Contact_Type:chararray, LOB;
 
-spl1_wire = FOREACH spl_wire GENERATE
-REPLACE(Contact_Type, '^.*Executive.*$', ' Executive') AS Contact_Type:chararray;
+spl2 = FOREACH spl1 GENERATE
+REPLACE(Contact_Type, '^[A-Z].*$', ' Others') AS Contact_Type:chararray, LOB;
 
-spl2_wire = FOREACH spl1_wire GENERATE
-REPLACE(Contact_Type, '^[A-Z].*$', ' Others') AS Contact_Type:chararray;
+SPLIT spl2 INTO 
+wire_LOB IF LOB == 'WIRELESS', 
+busi_LOB IF LOB == 'BUSINESS';
 
-spl_busi = FOREACH business_LOB GENERATE
-REPLACE(Contact_Type, '^.*Agency.*$', ' Agency') AS Contact_Type:chararray;
+grp_wire = GROUP wire_LOB BY Contact_Type;
+grp_busi = GROUP busi_LOB BY Contact_Type;
 
-spl1_busi = FOREACH spl_busi GENERATE
-REPLACE(Contact_Type, '^.*Executive.*$', ' Executive') AS Contact_Type:chararray;
-
-spl2_busi = FOREACH spl1_busi GENERATE
-REPLACE(Contact_Type, '^[A-Z].*$', ' Others') AS Contact_Type:chararray;
-
-grp_wire = GROUP spl2_wire BY Contact_Type;
-
-grp_busi = GROUP spl2_busi BY Contact_Type;
-
-grp_count_wire = FOREACH grp_wire GENERATE group, COUNT(spl2_wire) AS count;
-
-grp_count_busi = FOREACH grp_busi GENERATE group, COUNT(spl2_busi) AS count;
+grp_count_wire = FOREACH grp_wire GENERATE group, COUNT(wire_LOB) AS count;
+grp_count_busi = FOREACH grp_busi GENERATE group, COUNT(busi_LOB) AS count;
 
 STORE grp_count_wire INTO '/Projectdir/Contact_wire';
 STORE grp_count_busi INTO '/Projectdir/Contact_busi';
