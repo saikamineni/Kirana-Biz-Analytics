@@ -10,19 +10,19 @@ Total_Amount:float);
 required_data = FOREACH data GENERATE
 Date,
 Time,
-Total_Amount;
+Mobile_Number;
 
 filtered_data = FILTER required_data BY Date MATCHES '$DATE';
 
 cleaned_data = FOREACH filtered_data GENERATE
 REPLACE(Time, '^.*$', CONCAT(REGEX_EXTRACT(Time, '(.*):(.*)', 1),REGEX_EXTRACT(Time, '(.*) (.*)', 2))) AS Time:chararray,
-Total_Amount AS Total_Amount:float;
+Mobile_Number AS Mobile_Number:long;
 
 corrected_data = FILTER cleaned_data BY Time MATCHES '^.*M$';
 
 grouped_time_data = GROUP corrected_data BY Time;
 
-counted_sales_data = FOREACH grouped_time_data GENERATE group, COUNT(corrected_data) AS total;
+counted_sales_data = FOREACH grouped_time_data {mob = corrected_data.Mobile_Number; uniq_no = distinct mob; GENERATE group, COUNT(uniq_no) AS total;};
 
 STORE counted_sales_data INTO '/Project-2/peak_hours_line/$DATE';
 
